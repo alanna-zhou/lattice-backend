@@ -17,3 +17,21 @@ class User(db.Model):
           'username': self.username,
           'name': self.name
       }
+
+class Match(db.Model):
+    __tablename__ = 'match'
+    id = db.Column(db.Integer, primary_key=True)
+    first_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    second_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    first_user = db.relationship("User", foreign_keys=[first_user_id])
+    second_user = db.relationship("User", foreign_keys=[second_user_id])
+ 
+    def __init__(self, **kwargs):
+      self.first_user_id = kwargs.get('first_user_id')
+      self.second_user_id = kwargs.get('second_user_id')
+    
+    def serialize(self):
+      return {
+          'first_username': self.first_user.username,
+          'second_username': self.second_user.username
+      }

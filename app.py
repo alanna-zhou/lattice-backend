@@ -1,6 +1,6 @@
 import json
 import requests
-from db import db, User
+from db import db, User, Match
 from flask import Flask, request
 from sqlalchemy.event import listen
 from sqlalchemy import event
@@ -68,6 +68,30 @@ def get_all_users():
   for u in query:
     users.append(u.serialize())
   return json.dumps({'success': True, 'data': users}), 200
+
+@app.route('/api/match/', methods=['POST'])
+def match_users():
+  post_body = json.loads(request.data)
+  if 'first_username' not in post_body:
+    return json.dumps({'success': False, 'error': 'Missing first_username field!'}), 404
+  if 'second_username' not in post_body:
+    return json.dumps({'success': False, 'error': 'Missing second_username field!'}), 404
+  first_user = User.query.filter_by(username=post_body.get('first_username')).first()
+  second_user = User.query.filter_by(username=post_body.get('second_username')).first()
+  if first_user is None:
+    return json.dumps({'success': False, 'error': 'First username is invalid!'}), 404
+  if second_user is None:
+    return json.dumps({'success': False, 'error': 'Second username is invalid!'}), 404
+  match = Match.query.filter_by(first_user_id=first_user.id, second_user_id=second_user.id).first()
+  if match is not None:
+    return json.dumps({'success': False, 'error': 'Match already exists!'}), 404
+  match = Match(
+    first_user_id=first_user.id,
+    second_user_id=second_user.id
+  )
+  db.session.add(match)
+  db.session.commit()
+  return json.dumps({'success': True, 'data': match.serialize()}), 200
 
 
 if __name__ == '__main__':
