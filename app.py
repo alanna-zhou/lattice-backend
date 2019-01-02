@@ -118,9 +118,9 @@ def get_all_matches():
   query = Match.query.all()
   matches = []
   for m in query:
-    matches.append(m.serialize())
+    if m.serialize() is not None:
+      matches.append(m.serialize())
   return json.dumps({'success': True, 'data': matches}), 200
-
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)

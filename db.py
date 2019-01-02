@@ -31,7 +31,9 @@ class Match(db.Model):
       self.second_user_id = kwargs.get('second_user_id')
     
     def serialize(self):
-      return {
-          'first_username': self.first_user.username,
-          'second_username': self.second_user.username
-      }
+      if self.first_user is not None and self.second_user is not None:
+        return {
+            'first_username': self.first_user.username,
+            'second_username': self.second_user.username
+        }
+      return None
