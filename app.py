@@ -43,7 +43,15 @@ def get_user(username):
   if user is None:
     return json.dumps({'success': False, 'error': 'User does not exist!'}), 404
   return json.dumps({'success': True, 'data': user.serialize()}), 200
-  
+
+@app.route('/api/user/<string:username>/', methods=['DELETE'])
+def delete_user(username):
+  user = User.query.filter_by(username=username).first()
+  if user is None:
+    return json.dumps({'success': False, 'error': 'User does not exist!'}), 404
+  db.session.delete(user)
+  db.session.commit()
+  return json.dumps({'success': True, 'data': user.serialize()}), 200
 
 
 if __name__ == '__main__':
