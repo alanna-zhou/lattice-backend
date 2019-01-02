@@ -20,7 +20,9 @@ with app.app_context():
 @app.route('/api/user/', methods=['POST'])
 def create_user():
   post_body = json.loads(request.data)
-  validate_json(post_body, ['username', 'name'])
+  v = validate_json(post_body, ['username', 'name'])
+  if v is not None:
+    return v
   user = User.query.filter_by(username=post_body.get('username')).first()
   if user is not None:
     user.name = post_body.get('name')
@@ -37,13 +39,17 @@ def create_user():
 @app.route('/api/user/<string:username>/', methods=['GET'])
 def get_user(username):
   user = User.query.filter_by(username=username).first()
-  validate_objects([user])
+  v = validate_objects([user])
+  if v is not None:
+    return v
   return json.dumps({'success': True, 'data': user.serialize()}), 200
 
 @app.route('/api/user/<string:username>/', methods=['DELETE'])
 def delete_user(username):
   user = User.query.filter_by(username=username).first()
-  validate_objects([user])
+  v = validate_objects([user])
+  if v is not None:
+    return v
   db.session.delete(user)
   db.session.commit()
   return json.dumps({'success': True, 'data': user.serialize()}), 200
@@ -67,10 +73,14 @@ def get_all_users():
 @app.route('/api/match/', methods=['POST'])
 def match_users():
   post_body = json.loads(request.data)
-  validate_json(post_body, ['first_username', 'second_username'])
+  v = validate_json(post_body, ['first_username', 'second_username'])
+  if v is not None:
+    return v
   first_user = User.query.filter_by(username=post_body.get('first_username')).first()
   second_user = User.query.filter_by(username=post_body.get('second_username')).first()
-  validate_objects([first_user, second_user])
+  v = validate_objects([first_user, second_user])
+  if v is not None:
+    return v
   match = Match.query.filter_by(first_user_id=first_user.id, second_user_id=second_user.id).first()
   if match is not None:
     return json.dumps({'success': False, 'error': 'Match already exists!'}), 404
@@ -85,10 +95,14 @@ def match_users():
 @app.route('/api/match/delete/', methods=['POST'])
 def delete_match():
   post_body = json.loads(request.data)
-  validate_json(post_body, ['first_username', 'second_username'])
+  v = validate_json(post_body, ['first_username', 'second_username'])
+  if v is not None:
+    return v
   first_user = User.query.filter_by(username=post_body.get('first_username')).first()
   second_user = User.query.filter_by(username=post_body.get('second_username')).first()
-  validate_objects([first_user, second_user])
+  v = validate_objects([first_user, second_user])
+  if v is not None:
+    return v
   match = Match.query.filter_by(first_user_id=first_user.id, second_user_id=second_user.id).first()
   if match is None:
     return json.dumps({'success': False, 'error': 'Could not delete match. Match is invalid!'}), 404
@@ -109,20 +123,19 @@ def get_all_matches():
 # def create_event():
 #   post_body = json.loads(request.data)
 #   validate_json(post_body, ['username', 'start_date', 'end_date'])
-#   for k in keys:
-#     if k not in post_body:
-#       return json.dumps({'success': False, 'error': 
-#           'Missing necessary parameter to create an event!'}), 404
+  
   
 def validate_json(post_body, fields):
   for f in fields:
     if f not in post_body:
       return json.dumps({'success': False, 'error': 'Missing this necessary parameter: {}'.format(f)}), 404
+  return None
 
 def validate_objects(objects):
   for o in objects:
     if o is None:
-      return json.dumps({'success': False, 'error': '{} is invalid!'.format(o)}), 404
+      return json.dumps({'success': False, 'error': 'Parameter(s) is invalid!'}), 404
+  return None
 
 
 if __name__ == '__main__':
