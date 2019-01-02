@@ -53,6 +53,22 @@ def delete_user(username):
   db.session.commit()
   return json.dumps({'success': True, 'data': user.serialize()}), 200
 
+@app.route('/api/users/', methods=['DELETE'])
+def delete_all_users():
+  user = User.query.all()
+  for u in user:
+    db.session.delete(u)
+    db.session.commit()
+  return json.dumps({'success': True}), 200
+
+@app.route('/api/users/', methods=['GET'])
+def get_all_users():
+  query = User.query.all()
+  users = []
+  for u in query:
+    users.append(u.serialize())
+  return json.dumps({'success': True, 'data': users}), 200
+
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)
