@@ -93,6 +93,34 @@ def match_users():
   db.session.commit()
   return json.dumps({'success': True, 'data': match.serialize()}), 200
 
+@app.route('/api/match/delete/', methods=['POST'])
+def delete_match():
+  post_body = json.loads(request.data)
+  if 'first_username' not in post_body:
+    return json.dumps({'success': False, 'error': 'Missing first_username field!'}), 404
+  if 'second_username' not in post_body:
+    return json.dumps({'success': False, 'error': 'Missing second_username field!'}), 404
+  first_user = User.query.filter_by(username=post_body.get('first_username')).first()
+  second_user = User.query.filter_by(username=post_body.get('second_username')).first()
+  if first_user is None:
+    return json.dumps({'success': False, 'error': 'Could not delete match. First username is invalid!'}), 404
+  if second_user is None:
+    return json.dumps({'success': False, 'error': 'Could not delete match. Second username is invalid!'}), 404
+  match = Match.query.filter_by(first_user_id=first_user.id, second_user_id=second_user.id).first()
+  if match is None:
+    return json.dumps({'success': False, 'error': 'Could not delete match. Match is invalid!'}), 404
+  db.session.delete(match)
+  db.session.commit()
+  return json.dumps({'success': True, 'data': match.serialize()}), 200
+
+@app.route('/api/matches/', methods=['GET'])
+def get_all_matches():
+  query = Match.query.all()
+  matches = []
+  for m in query:
+    matches.append(m.serialize())
+  return json.dumps({'success': True, 'data': matches}), 200
+
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)
