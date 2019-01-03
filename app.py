@@ -119,19 +119,59 @@ def get_all_matches():
       matches.append(m.serialize())
   return json.dumps({'success': True, 'data': matches}), 200
 
-# @app.route('/api/event/', methods=['POST'])
-# def create_event():
-#   post_body = json.loads(request.data)
-#   validate_json(post_body, ['username', 'start_date', 'end_date'])
-  
-  
+@app.route('/api/event/', methods=['POST'])
+def create_event():
+  post_body = json.loads(request.data)
+  v = validate_json(post_body, ['username', 'start_date', 'end_date'])
+  if v is not None:
+    return v
+  user = User.query.filter_by(username=post_body.get('username')).first()
+  v = validate_objects([user])
+  if v is not None:
+    return v
+  event = Event(
+    event_name=post_body.get('event_name', ''),
+    start_date=post_body.get('start_date'),
+    end_date=post_body.get('end_date'),
+    location=post_body.get('location', ''),
+    is_private=post_body.get('is_private', False),
+  )
+  db.session.add(event)
+  db.session.flush()
+  user_to_event = UserToEvent(
+    user_id=user.id,
+    event_id=event.id
+  )
+  db.session.add(user_to_event)
+  db.session.commit()
+  return json.dumps({'success': True, 'data': event.serialize()}), 200
+
+@app.route('/api/event/<string:username>/<int:event_id>/', methods=['DELETE'])
+def delete_event(username, event_id):
+  user = User.query.filter_by(username=username).first()
+  event = Event.query.filter_by(id=event_id).first()
+  v = validate_objects([user, event])
+  if v is not None:
+    return v
+  user_to_event = UserToEvent.query.filter_by(user_id=user.id, event_id=event_id).first()
+  if user_to_event is None:
+    return json.dumps({'success': False, 'error': 'User does not have this event id!'}), 404
+  db.session.delete(event)
+  db.session.delete(user_to_event)
+  db.session.commit()
+  return json.dumps({'success': True, 'data': event.serialize()}), 200
+
+@app.route('/api')
+
 def validate_json(post_body, fields):
+  """Checks that the post body contains every element in the list of fields. If all fields are found, method returns None."""
   for f in fields:
     if f not in post_body:
       return json.dumps({'success': False, 'error': 'Missing this necessary parameter: {}'.format(f)}), 404
   return None
 
 def validate_objects(objects):
+  """Checks if the list of objects are none. Returns None if they are all valid objects."""
   for o in objects:
     if o is None:
       return json.dumps({'success': False, 'error': 'Parameter(s) is invalid!'}), 404

@@ -49,14 +49,15 @@ class Event(db.Model):
     user_to_event = db.relationship('UserToEvent', cascade='delete')
 
     def __init__(self, **kwargs):
-      self.event_name = kwargs.get('event_name', '')
+      self.event_name = kwargs.get('event_name')
       self.start_date = kwargs.get('start_date')
       self.end_date = kwargs.get('end_date')
-      self.location = kwargs.get('location', '')
-      self.is_private = kwargs.get('is_private', False)
+      self.location = kwargs.get('location')
+      self.is_private = kwargs.get('is_private')
 
     def serialize(self):
       return {
+          'id': self.id,
           'event_name': self.event_name,
           'start_date': self.start_date,
           'end_date': self.end_date,
