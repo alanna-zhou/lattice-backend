@@ -163,19 +163,38 @@ def delete_event(username, event_id):
 
 @app.route('/api/user/<string:username>/events/', methods=['GET'])
 def get_user_events(username):
-  try: 
-    user = User.query.filter_by(username=username).first()
-    usertoevents = UserToEvent.query.filter_by(user_id=user.id)
-    v = validate_objects([user, usertoevents])
-    if v is not None:
-      return v
-    events = []
-    for ue in usertoevents:
-      events.append(Event.query.filter_by(id=ue.event_id).first().serialize())
-  except Exception as e: 
-    print(e)
+  user = User.query.filter_by(username=username).first()
+  usertoevents = UserToEvent.query.filter_by(user_id=user.id)
+  v = validate_objects([user, usertoevents])
+  if v is not None:
+    return v
+  events = []
+  for ue in usertoevents:
+    events.append(Event.query.filter_by(id=ue.event_id).first().serialize())
   return json.dumps({'success': True, 'data': events}), 200
-  
+
+@app.route('/api/user/<string:username>/events/', methods=['DELETE'])
+def delete_user_events(username):
+  user = User.query.filter_by(username=username).first()
+  usertoevents = UserToEvent.query.filter_by(user_id=user.id)
+  v = validate_objects([user, usertoevents])
+  if v is not None:
+    return v
+  deleted_event_ids = [] 
+  try: 
+    for ue in usertoevents:
+      deleted_event_ids.append(ue.event_id)
+      db.session.delete(Event.query.filter_by(id=ue.event_id).first())
+      db.session.delete(ue)
+    db.session.commit()
+  except Exception as e:
+    print(e)
+  result = {
+    'username' : user.username,
+    'event_ids' : deleted_event_ids
+  }
+  return json.dumps({'success': True, 'data': result}), 200
+
 
 def validate_json(post_body, fields):
   """Checks that the post body contains every element in the list of fields. If all fields are found, method returns None."""
