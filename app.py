@@ -146,6 +146,20 @@ def create_event():
   db.session.commit()
   return json.dumps({'success': True, 'data': event.serialize()}), 200
 
+@app.route('/api/events/', methods=['GET'])
+def get_all_events():
+  usertoevents = UserToEvent.query.all()
+  events = []
+  for ue in usertoevents:
+    user = User.query.filter_by(id=ue.user_id).first()
+    event = Event.query.filter_by(id=ue.event_id).first()
+    result = {
+      'username' : user.username
+    }
+    result.update(event.serialize())
+    events.append(result)
+  return json.dumps({'success': True, 'data': events}), 200
+
 @app.route('/api/event/<int:event_id>/', methods=['DELETE'])
 def delete_event(event_id):
   event = Event.query.filter_by(id=event_id).first()
