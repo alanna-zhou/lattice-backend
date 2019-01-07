@@ -146,20 +146,25 @@ def create_event():
   db.session.commit()
   return json.dumps({'success': True, 'data': event.serialize()}), 200
 
-@app.route('/api/event/<string:username>/<int:event_id>/', methods=['DELETE'])
-def delete_event(username, event_id):
-  user = User.query.filter_by(username=username).first()
+@app.route('/api/event/<int:event_id>/', methods=['DELETE'])
+def delete_event(event_id):
   event = Event.query.filter_by(id=event_id).first()
-  v = validate_objects([user, event])
+  v = validate_objects([event])
   if v is not None:
     return v
-  user_to_event = UserToEvent.query.filter_by(user_id=user.id, event_id=event_id).first()
-  if user_to_event is None:
-    return json.dumps({'success': False, 'error': 'User does not have this event id!'}), 404
+  usertoevent = UserToEvent.query.filter_by(event_id=event.id).first()
+  v = validate_objects([usertoevent])
+  if v is not None:
+    return v
+  user = User.query.filter_by(id=usertoevent.user_id).first()
   db.session.delete(event)
-  db.session.delete(user_to_event)
+  db.session.delete(usertoevent)
   db.session.commit()
-  return json.dumps({'success': True, 'data': event.serialize()}), 200
+  result = {
+    'username' : user.username,
+    'event_id' : event.id
+  }
+  return json.dumps({'success': True, 'data': result}), 200
 
 @app.route('/api/user/<string:username>/events/', methods=['GET'])
 def get_user_events(username):
