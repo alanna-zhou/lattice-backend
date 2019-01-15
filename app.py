@@ -1,6 +1,6 @@
 import json
 import requests
-from db import db, User, Match, Event, UserToEvent
+from db import db, User, Match, Event, UserToEvent, Group, user_to_group
 from flask import Flask, request
 from sqlalchemy.event import listen
 from sqlalchemy import event
@@ -16,6 +16,20 @@ app.config['SQLALCHEMY_ECHO'] = True
 db.init_app(app)
 with app.app_context():
   db.create_all()
+
+def validate_json(post_body, fields):
+  """Checks that the post body contains every element in the list of fields. If all fields are found, method returns None."""
+  for f in fields:
+    if f not in post_body:
+      return json.dumps({'success': False, 'error': 'Missing this necessary parameter: {}'.format(f)}), 404
+  return None
+
+def validate_objects(objects):
+  """Checks if the list of objects are none. Returns None if they are all valid objects."""
+  for o in objects:
+    if o is None:
+      return json.dumps({'success': False, 'error': 'Parameter(s) is invalid!'}), 404
+  return None
 
 @app.route('/api/user/', methods=['POST'])
 def create_user():
@@ -214,21 +228,43 @@ def delete_user_events(username):
   }
   return json.dumps({'success': True, 'data': result}), 200
 
-
-def validate_json(post_body, fields):
-  """Checks that the post body contains every element in the list of fields. If all fields are found, method returns None."""
-  for f in fields:
-    if f not in post_body:
-      return json.dumps({'success': False, 'error': 'Missing this necessary parameter: {}'.format(f)}), 404
-  return None
-
-def validate_objects(objects):
-  """Checks if the list of objects are none. Returns None if they are all valid objects."""
-  for o in objects:
-    if o is None:
-      return json.dumps({'success': False, 'error': 'Parameter(s) is invalid!'}), 404
-  return None
-
+@app.route('/api/group/', methods=['POST'])
+def create_group():
+  try: 
+    post_body = json.loads(request.data)
+    v = validate_json(post_body, ['group_members'])
+    if v is not None:
+      return v
+    # name and is_private are optional for now?
+    group = Group(
+      name=post_body.get('group_name', '')
+    )
+    db.session.add(group)
+    db.session.flush()
+    print('group: ', group.serialize())
+    group_members = post_body.get('group_members')
+    print('group_members: ', group_members)
+    users = [] 
+    for member in group_members:
+      user = User.query.filter_by(username=member).first()
+      print('user: ', user.serialize())
+      print('association table: ', group.members)
+      if user is None:
+        continue
+      group.members.all().append(user)
+    db.session.flush()
+    result = group.serialize()
+    for member in group.members.all():
+      print('member serialize', member.serialize())
+      print('REACHES HERE?')
+      result.append(member.username)
+      db.session.commit()
+    usernames = [u.username for u in group.members.all()]
+    print('usernames', usernames)
+    return json.dumps({'success': True, 'data': result}), 200
+  except Exception as e:
+    print(e)
+  return json.dumps({'success': False, 'error': 'haha something went wrong'}), 404
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)

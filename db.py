@@ -1,12 +1,19 @@
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 db = SQLAlchemy()
+
+user_to_group = db.Table('user_to_group', 
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('group_id', db.Integer, db.ForeignKey('group.id'))
+)
 
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
+    groups = db.relationship('Group', secondary=user_to_group, backref=db.backref('members', lazy='dynamic'))
 
     def __init__(self, **kwargs):
       self.username = kwargs.get('username')
@@ -80,3 +87,28 @@ class UserToEvent(db.Model):
           'user_id': self.user_id,
           'event_id': self.event_id,
       }
+
+class Group(db.Model):
+    __tablename__ = 'group'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    
+    def __init__(self, **kwargs):
+      self.name = kwargs.get('name')
+    
+    def serialize(self):
+      group_members = []
+      print('self.members', self.members)
+      if self.members.all() is not None:
+        for member in self.members.all():
+          print('member: ', member.serialize())
+          group_members.append(member.username)
+      return {
+          'group_id': self.id,
+          'group_name': self.name,
+          'group_members': group_members,
+      }
+
+
+
+# groupname.members.append(user)
